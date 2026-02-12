@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4A90E2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Ukrainian Vocabulary</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .flashcard-container {
+            perspective: 1000px;
+            margin-bottom: 30px;
+            height: 300px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .card-word {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            word-wrap: break-word;
+        }
+
+        .card-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .card-pronunciation {
+            font-size: 16px;
+            opacity: 0.9;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+
+        .btn-prev {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-next {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .secondary-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:active {
+            background: #667eea;
+            color: white;
+        }
+
+        .add-word-form {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .form-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tap-hint {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 20px;
+            }
+
+            .card-word {
+                font-size: 36px;
+            }
+
+            .flashcard-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Initial Ukrainian vocabulary
+        const initialVocabulary = [
+            { ukrainian: "Привіт", english: "Hello", pronunciation: "pry-vit" },
+            { ukrainian: "Дякую", english: "Thank you", pronunciation: "dya-ku-yu" },
+            { ukrainian: "Так", english: "Yes", pronunciation: "tak" },
+            { ukrainian: "Ні", english: "No", pronunciation: "ni" },
+            { ukrainian: "Будь ласка", english: "Please", pronunciation: "bud' las-ka" },
+            { ukrainian: "Вибачте", english: "Excuse me", pronunciation: "vy-bach-te" },
+            { ukrainian: "До побачення", english: "Goodbye", pronunciation: "do po-ba-chen-nya" },
+            { ukrainian: "Доброго ранку", english: "Good morning", pronunciation: "do-bro-ho ran-ku" },
+            { ukrainian: "Добрий день", english: "Good afternoon", pronunciation: "do-bryy den'" },
+            { ukrainian: "Добрий вечір", english: "Good evening", pronunciation: "do-bryy ve-chir" },
+            { ukrainian: "Як справи?", english: "How are you?", pronunciation: "yak spra-vy" },
+            { ukrainian: "Добре", english: "Good/Fine", pronunciation: "do-bre" },
+            { ukrainian: "Погано", english: "Bad", pronunciation: "po-ha-no" },
+            { ukrainian: "Я не розумію", english: "I don't understand", pronunciation: "ya ne ro-zu-mi-yu" },
+            { ukrainian: "Допоможіть", english: "Help", pronunciation: "do-po-mo-zhit'" },
+            { ukrainian: "Вода", english: "Water", pronunciation: "vo-da" },
+            { ukrainian: "Їжа", english: "Food", pronunciation: "yi-zha" },
+            { ukrainian: "Дім", english: "House/Home", pronunciation: "dim" },
+            { ukrainian: "Любов", english: "Love", pronunciation: "lyu-bov" },
+            { ukrainian: "Друг", english: "Friend", pronunciation: "druh" },
+        ];
+
+        function Flashcard({ word, isFlipped, onFlip }) {
+            return (
+                <div className="flashcard-container" onClick={onFlip}>
+                    <div className={`flashcard ${isFlipped ? 'flipped' : ''}`}>
+                        <div className="card-face card-front">
+                            <div className="card-label">Ukrainian</div>
+                            <div className="card-word">{word.ukrainian}</div>
+                            {word.pronunciation && (
+                                <div className="card-pronunciation">[{word.pronunciation}]</div>
+                            )}
+                        </div>
+                        <div className="card-face card-back">
+                            <div className="card-label">English</div>
+                            <div className="card-word">{word.english}</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function AddWordForm({ onAdd, onCancel }) {
+            const [ukrainian, setUkrainian] = useState('');
+            const [english, setEnglish] = useState('');
+            const [pronunciation, setPronunciation] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (ukrainian.trim() && english.trim()) {
+                    onAdd({ ukrainian, english, pronunciation });
+                    setUkrainian('');
+                    setEnglish('');
+                    setPronunciation('');
+                }
+            };
+
+            return (
+                <div className="add-word-form">
+                    <div className="form-title">Add New Word</div>
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label className="form-label">Ukrainian Word</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={ukrainian}
+                                onChange={(e) => setUkrainian(e.target.value)}
+                                placeholder="Привіт"
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">English Translation</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={english}
+                                onChange={(e) => setEnglish(e.target.value)}
+                                placeholder="Hello"
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Pronunciation (optional)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={pronunciation}
+                                onChange={(e) => setPronunciation(e.target.value)}
+                                placeholder="pry-vit"
+                            />
+                        </div>
+                        <div className="form-actions">
+                            <button type="button" className="btn btn-prev" onClick={onCancel}>
+                                Cancel
+                            </button>
+                            <button type="submit" className="btn btn-next">
+                                Add Word
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            );
+        }
+
+        function App() {
+            const [vocabulary, setVocabulary] = useState(() => {
+                const saved = localStorage.getItem('ukrainianVocabulary');
+                return saved ? JSON.parse(saved) : initialVocabulary;
+            });
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [isFlipped, setIsFlipped] = useState(false);
+            const [showAddForm, setShowAddForm] = useState(false);
+
+            useEffect(() => {
+                localStorage.setItem('ukrainianVocabulary', JSON.stringify(vocabulary));
+            }, [vocabulary]);
+
+            const handleNext = () => {
+                setIsFlipped(false);
+                setCurrentIndex((prev) => (prev + 1) % vocabulary.length);
+            };
+
+            const handlePrev = () => {
+                setIsFlipped(false);
+                setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length);
+            };
+
+            const handleFlip = () => {
+                setIsFlipped(!isFlipped);
+            };
+
+            const handleShuffle = () => {
+                const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
+                setVocabulary(shuffled);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+            };
+
+            const handleAddWord = (newWord) => {
+                setVocabulary([...vocabulary, newWord]);
+                setShowAddForm(false);
+            };
+
+            const handleReset = () => {
+                if (confirm('Reset to default vocabulary? Your custom words will be removed.')) {
+                    setVocabulary(initialVocabulary);
+                    setCurrentIndex(0);
+                    setIsFlipped(false);
+                }
+            };
+
+            if (vocabulary.length === 0) {
+                return (
+                    <div className="app-container">
+                        <div className="header">
+                            <h1>🇺🇦 Ukrainian Vocabulary</h1>
+                            <p>No words yet. Add your first word!</p>
+                        </div>
+                        <AddWordForm
+                            onAdd={handleAddWord}
+                            onCancel={() => {}}
+                        />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="app-container">
+                    <div className="header">
+                        <h1>🇺🇦 Ukrainian Vocabulary</h1>
+                        <div className="progress">
+                            Card {currentIndex + 1} of {vocabulary.length}
+                        </div>
+                    </div>
+
+                    <Flashcard
+                        word={vocabulary[currentIndex]}
+                        isFlipped={isFlipped}
+                        onFlip={handleFlip}
+                    />
+
+                    <div className="tap-hint">
+                        Tap card to flip
+                    </div>
+
+                    <div className="controls">
+                        <button className="btn btn-prev" onClick={handlePrev}>
+                            ← Previous
+                        </button>
+                        <button className="btn btn-next" onClick={handleNext}>
+                            Next →
+                        </button>
+                    </div>
+
+                    <div className="secondary-controls">
+                        <button className="btn-secondary" onClick={handleShuffle}>
+                            🔀 Shuffle
+                        </button>
+                        <button className="btn-secondary" onClick={() => setShowAddForm(!showAddForm)}>
+                            ➕ Add Word
+                        </button>
+                        <button className="btn-secondary" onClick={handleReset}>
+                            🔄 Reset
+                        </button>
+                    </div>
+
+                    {showAddForm && (
+                        <AddWordForm
+                            onAdd={handleAddWord}
+                            onCancel={() => setShowAddForm(false)}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+        // Register service worker for offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>
