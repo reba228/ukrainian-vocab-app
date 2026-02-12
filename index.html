@@ -363,6 +363,116 @@
             );
         }
 
+        function ImportWordsForm({ onImport, onCancel }) {
+            const [importText, setImportText] = useState('');
+            const [preview, setPreview] = useState([]);
+
+            const parseImportText = (text) => {
+                const lines = text.trim().split('\n').filter(line => line.trim());
+                const words = [];
+
+                for (const line of lines) {
+                    // Support multiple formats:
+                    // Format 1: Ukrainian | English | pronunciation
+                    // Format 2: Ukrainian, English, pronunciation
+                    // Format 3: Ukrainian - English
+                    // Format 4: Ukrainian	English	pronunciation (tab-separated)
+
+                    let parts;
+                    if (line.includes('|')) {
+                        parts = line.split('|').map(p => p.trim());
+                    } else if (line.includes('\t')) {
+                        parts = line.split('\t').map(p => p.trim());
+                    } else if (line.includes(',')) {
+                        parts = line.split(',').map(p => p.trim());
+                    } else if (line.includes(' - ')) {
+                        parts = line.split(' - ').map(p => p.trim());
+                    } else {
+                        continue; // Skip lines that don't match any format
+                    }
+
+                    if (parts.length >= 2) {
+                        words.push({
+                            ukrainian: parts[0],
+                            english: parts[1],
+                            pronunciation: parts[2] || ''
+                        });
+                    }
+                }
+
+                return words;
+            };
+
+            const handleTextChange = (e) => {
+                const text = e.target.value;
+                setImportText(text);
+                setPreview(parseImportText(text));
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (preview.length > 0) {
+                    onImport(preview);
+                    setImportText('');
+                    setPreview([]);
+                }
+            };
+
+            return (
+                <div className="add-word-form">
+                    <div className="form-title">Import Words</div>
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label className="form-label">
+                                Paste your vocabulary (one per line)
+                            </label>
+                            <textarea
+                                className="form-input"
+                                style={{ minHeight: '150px', fontFamily: 'monospace', fontSize: '14px' }}
+                                value={importText}
+                                onChange={handleTextChange}
+                                placeholder={"Supported formats:\nПривіт | Hello | pry-vit\nДякую, Thank you, dya-ku-yu\nТак - Yes\nНі	No	ni"}
+                                rows="8"
+                            />
+                            <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                                Formats: Ukrainian | English | pronunciation<br/>
+                                or: Ukrainian, English, pronunciation<br/>
+                                or: Ukrainian - English
+                            </div>
+                        </div>
+                        {preview.length > 0 && (
+                            <div className="form-group">
+                                <div style={{ fontSize: '14px', color: '#4CAF50', fontWeight: '600', marginBottom: '5px' }}>
+                                    Preview: {preview.length} word{preview.length !== 1 ? 's' : ''} will be imported
+                                </div>
+                                <div style={{ maxHeight: '120px', overflow: 'auto', fontSize: '13px', padding: '10px', background: '#f9f9f9', borderRadius: '5px' }}>
+                                    {preview.slice(0, 5).map((word, idx) => (
+                                        <div key={idx} style={{ marginBottom: '5px' }}>
+                                            {word.ukrainian} → {word.english}
+                                            {word.pronunciation && ` [${word.pronunciation}]`}
+                                        </div>
+                                    ))}
+                                    {preview.length > 5 && <div>... and {preview.length - 5} more</div>}
+                                </div>
+                            </div>
+                        )}
+                        <div className="form-actions">
+                            <button type="button" className="btn btn-prev" onClick={onCancel}>
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="btn btn-next"
+                                disabled={preview.length === 0}
+                            >
+                                Import {preview.length > 0 && `(${preview.length})`}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            );
+        }
+
         function App() {
             const [vocabulary, setVocabulary] = useState(() => {
                 const saved = localStorage.getItem('ukrainianVocabulary');
@@ -371,6 +481,7 @@
             const [currentIndex, setCurrentIndex] = useState(0);
             const [isFlipped, setIsFlipped] = useState(false);
             const [showAddForm, setShowAddForm] = useState(false);
+            const [showImportForm, setShowImportForm] = useState(false);
 
             useEffect(() => {
                 localStorage.setItem('ukrainianVocabulary', JSON.stringify(vocabulary));
@@ -400,6 +511,11 @@
             const handleAddWord = (newWord) => {
                 setVocabulary([...vocabulary, newWord]);
                 setShowAddForm(false);
+            };
+
+            const handleImportWords = (words) => {
+                setVocabulary([...vocabulary, ...words]);
+                setShowImportForm(false);
             };
 
             const handleReset = () => {
@@ -457,8 +573,17 @@
                         <button className="btn-secondary" onClick={handleShuffle}>
                             🔀 Shuffle
                         </button>
-                        <button className="btn-secondary" onClick={() => setShowAddForm(!showAddForm)}>
+                        <button className="btn-secondary" onClick={() => {
+                            setShowAddForm(!showAddForm);
+                            setShowImportForm(false);
+                        }}>
                             ➕ Add Word
+                        </button>
+                        <button className="btn-secondary" onClick={() => {
+                            setShowImportForm(!showImportForm);
+                            setShowAddForm(false);
+                        }}>
+                            📥 Import
                         </button>
                         <button className="btn-secondary" onClick={handleReset}>
                             🔄 Reset
@@ -469,6 +594,13 @@
                         <AddWordForm
                             onAdd={handleAddWord}
                             onCancel={() => setShowAddForm(false)}
+                        />
+                    )}
+
+                    {showImportForm && (
+                        <ImportWordsForm
+                            onImport={handleImportWords}
+                            onCancel={() => setShowImportForm(false)}
                         />
                     )}
                 </div>
