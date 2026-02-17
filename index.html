@@ -691,51 +691,57 @@
             const vocabInitialized = useRef(false);
             const saveTimer = useRef(null);
 
-            // ── Handle redirect result (mobile sign-in) ──
+            // ── Auth init: wait for redirect result THEN listen ──
             useEffect(() => {
-                firebase.auth().getRedirectResult().catch(e => {
-                    if (e.code && e.code !== 'auth/no-redirect-operation') {
-                        setSignInError('Sign-in failed. Please try again.');
-                        console.error(e);
-                    }
-                });
-            }, []);
+                let unsubscribe = () => {};
 
-            // ── Auth listener ──
-            useEffect(() => {
-                const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
-                    setUser(u);
-                    setAuthLoading(false);
-                    if (u) {
-                        vocabInitialized.current = false;
-                        setVocabLoading(true);
-                        try {
-                            const doc = await firebase.firestore()
-                                .collection('users').doc(u.uid).get();
-                            if (doc.exists && doc.data().words && doc.data().words.length > 0) {
-                                const words = doc.data().words.map(w => ({
-                                    ...w,
-                                    confidence: w.confidence !== undefined ? w.confidence : 0,
-                                    reviewCount: w.reviewCount || 0
-                                }));
-                                setVocabulary(words);
-                            } else {
-                                setVocabulary(initialVocabulary);
-                            }
-                        } catch (e) {
-                            console.error('Firestore load failed:', e);
-                            // Fallback to localStorage
-                            const saved = localStorage.getItem('ukrainianVocabulary');
-                            setVocabulary(saved ? JSON.parse(saved) : initialVocabulary);
+                const init = async () => {
+                    // Step 1: process any pending redirect first
+                    try {
+                        await firebase.auth().getRedirectResult();
+                    } catch (e) {
+                        if (e.code && e.code !== 'auth/no-redirect-operation') {
+                            setSignInError('Sign-in failed. Please try again.');
+                            console.error(e);
                         }
-                        setVocabLoading(false);
-                        vocabInitialized.current = true;
-                    } else {
-                        setVocabulary([]);
-                        vocabInitialized.current = false;
                     }
-                });
-                return unsubscribe;
+
+                    // Step 2: now auth state is stable — set up listener
+                    unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
+                        setUser(u);
+                        setAuthLoading(false);
+                        if (u) {
+                            vocabInitialized.current = false;
+                            setVocabLoading(true);
+                            try {
+                                const doc = await firebase.firestore()
+                                    .collection('users').doc(u.uid).get();
+                                if (doc.exists && doc.data().words && doc.data().words.length > 0) {
+                                    const words = doc.data().words.map(w => ({
+                                        ...w,
+                                        confidence: w.confidence !== undefined ? w.confidence : 0,
+                                        reviewCount: w.reviewCount || 0
+                                    }));
+                                    setVocabulary(words);
+                                } else {
+                                    setVocabulary(initialVocabulary);
+                                }
+                            } catch (e) {
+                                console.error('Firestore load failed:', e);
+                                const saved = localStorage.getItem('ukrainianVocabulary');
+                                setVocabulary(saved ? JSON.parse(saved) : initialVocabulary);
+                            }
+                            setVocabLoading(false);
+                            vocabInitialized.current = true;
+                        } else {
+                            setVocabulary([]);
+                            vocabInitialized.current = false;
+                        }
+                    });
+                };
+
+                init();
+                return () => unsubscribe();
             }, []);
 
             // ── Save vocabulary to Firestore on change ──
