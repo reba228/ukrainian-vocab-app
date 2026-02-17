@@ -257,45 +257,114 @@
 
         // Initial Ukrainian vocabulary
         const initialVocabulary = [
-            { ukrainian: "Привіт", english: "Hello", pronunciation: "pry-vit" },
-            { ukrainian: "Дякую", english: "Thank you", pronunciation: "dya-ku-yu" },
-            { ukrainian: "Так", english: "Yes", pronunciation: "tak" },
-            { ukrainian: "Ні", english: "No", pronunciation: "ni" },
-            { ukrainian: "Будь ласка", english: "Please", pronunciation: "bud' las-ka" },
-            { ukrainian: "Вибачте", english: "Excuse me", pronunciation: "vy-bach-te" },
-            { ukrainian: "До побачення", english: "Goodbye", pronunciation: "do po-ba-chen-nya" },
-            { ukrainian: "Доброго ранку", english: "Good morning", pronunciation: "do-bro-ho ran-ku" },
-            { ukrainian: "Добрий день", english: "Good afternoon", pronunciation: "do-bryy den'" },
-            { ukrainian: "Добрий вечір", english: "Good evening", pronunciation: "do-bryy ve-chir" },
-            { ukrainian: "Як справи?", english: "How are you?", pronunciation: "yak spra-vy" },
-            { ukrainian: "Добре", english: "Good/Fine", pronunciation: "do-bre" },
-            { ukrainian: "Погано", english: "Bad", pronunciation: "po-ha-no" },
-            { ukrainian: "Я не розумію", english: "I don't understand", pronunciation: "ya ne ro-zu-mi-yu" },
-            { ukrainian: "Допоможіть", english: "Help", pronunciation: "do-po-mo-zhit'" },
-            { ukrainian: "Вода", english: "Water", pronunciation: "vo-da" },
-            { ukrainian: "Їжа", english: "Food", pronunciation: "yi-zha" },
-            { ukrainian: "Дім", english: "House/Home", pronunciation: "dim" },
-            { ukrainian: "Любов", english: "Love", pronunciation: "lyu-bov" },
-            { ukrainian: "Друг", english: "Friend", pronunciation: "druh" },
+            { ukrainian: "Привіт", english: "Hello", pronunciation: "pry-vit", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Дякую", english: "Thank you", pronunciation: "dya-ku-yu", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Так", english: "Yes", pronunciation: "tak", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Ні", english: "No", pronunciation: "ni", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Будь ласка", english: "Please", pronunciation: "bud' las-ka", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Вибачте", english: "Excuse me", pronunciation: "vy-bach-te", confidence: 0, reviewCount: 0 },
+            { ukrainian: "До побачення", english: "Goodbye", pronunciation: "do po-ba-chen-nya", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Доброго ранку", english: "Good morning", pronunciation: "do-bro-ho ran-ku", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Добрий день", english: "Good afternoon", pronunciation: "do-bryy den'" , confidence: 0, reviewCount: 0 },
+            { ukrainian: "Добрий вечір", english: "Good evening", pronunciation: "do-bryy ve-chir", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Як справи?", english: "How are you?", pronunciation: "yak spra-vy", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Добре", english: "Good/Fine", pronunciation: "do-bre", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Погано", english: "Bad", pronunciation: "po-ha-no", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Я не розумію", english: "I don't understand", pronunciation: "ya ne ro-zu-mi-yu", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Допоможіть", english: "Help", pronunciation: "do-po-mo-zhit'", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Вода", english: "Water", pronunciation: "vo-da", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Їжа", english: "Food", pronunciation: "yi-zha", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Дім", english: "House/Home", pronunciation: "dim", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Любов", english: "Love", pronunciation: "lyu-bov", confidence: 0, reviewCount: 0 },
+            { ukrainian: "Друг", english: "Friend", pronunciation: "druh", confidence: 0, reviewCount: 0 },
         ];
 
-        function Flashcard({ word, isFlipped, onFlip }) {
+        function Flashcard({ word, isFlipped, onFlip, onRate }) {
+            const getConfidenceBadge = (confidence) => {
+                const badges = [
+                    { emoji: '🆕', label: 'New', color: '#999' },
+                    { emoji: '📚', label: 'Learning', color: '#f5576c' },
+                    { emoji: '👍', label: 'Familiar', color: '#FFA726' },
+                    { emoji: '✅', label: 'Mastered', color: '#4CAF50' }
+                ];
+                return badges[confidence || 0];
+            };
+
+            const badge = getConfidenceBadge(word.confidence);
+
             return (
-                <div className="flashcard-container" onClick={onFlip}>
-                    <div className={`flashcard ${isFlipped ? 'flipped' : ''}`}>
-                        <div className="card-face card-front">
-                            <div className="card-label">Ukrainian</div>
-                            <div className="card-word">{word.ukrainian}</div>
-                            {word.pronunciation && (
-                                <div className="card-pronunciation">[{word.pronunciation}]</div>
-                            )}
-                        </div>
-                        <div className="card-face card-back">
-                            <div className="card-label">English</div>
-                            <div className="card-word">{word.english}</div>
+                <>
+                    <div className="flashcard-container" onClick={onFlip}>
+                        <div className={`flashcard ${isFlipped ? 'flipped' : ''}`}>
+                            <div className="card-face card-front">
+                                <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '24px' }}>
+                                    {badge.emoji}
+                                </div>
+                                <div className="card-label">Ukrainian</div>
+                                <div className="card-word">{word.ukrainian}</div>
+                                {word.pronunciation && (
+                                    <div className="card-pronunciation">[{word.pronunciation}]</div>
+                                )}
+                            </div>
+                            <div className="card-face card-back">
+                                <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '24px' }}>
+                                    {badge.emoji}
+                                </div>
+                                <div className="card-label">English</div>
+                                <div className="card-word">{word.english}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
+
+                    {isFlipped && (
+                        <div style={{
+                            display: 'flex',
+                            gap: '10px',
+                            marginTop: '15px',
+                            justifyContent: 'center'
+                        }}>
+                            <button
+                                className="btn"
+                                style={{
+                                    background: '#f5576c',
+                                    color: 'white',
+                                    padding: '12px 20px',
+                                    flex: 1,
+                                    maxWidth: '150px'
+                                }}
+                                onClick={(e) => { e.stopPropagation(); onRate(0); }}
+                            >
+                                😕 Hard
+                            </button>
+                            <button
+                                className="btn"
+                                style={{
+                                    background: '#FFA726',
+                                    color: 'white',
+                                    padding: '12px 20px',
+                                    flex: 1,
+                                    maxWidth: '150px'
+                                }}
+                                onClick={(e) => { e.stopPropagation(); onRate(1); }}
+                            >
+                                😐 OK
+                            </button>
+                            <button
+                                className="btn"
+                                style={{
+                                    background: '#4CAF50',
+                                    color: 'white',
+                                    padding: '12px 20px',
+                                    flex: 1,
+                                    maxWidth: '150px'
+                                }}
+                                onClick={(e) => { e.stopPropagation(); onRate(2); }}
+                            >
+                                😊 Easy
+                            </button>
+                        </div>
+                    )}
+                </>
             );
         }
 
@@ -581,16 +650,39 @@
         function App() {
             const [vocabulary, setVocabulary] = useState(() => {
                 const saved = localStorage.getItem('ukrainianVocabulary');
-                return saved ? JSON.parse(saved) : initialVocabulary;
+                const words = saved ? JSON.parse(saved) : initialVocabulary;
+                // Ensure all words have confidence tracking
+                return words.map(word => ({
+                    ...word,
+                    confidence: word.confidence !== undefined ? word.confidence : 0,
+                    reviewCount: word.reviewCount || 0
+                }));
             });
             const [currentIndex, setCurrentIndex] = useState(0);
             const [isFlipped, setIsFlipped] = useState(false);
             const [showAddForm, setShowAddForm] = useState(false);
             const [showImportForm, setShowImportForm] = useState(false);
+            const [sortMode, setSortMode] = useState('smart'); // 'smart', 'shuffle', 'newest'
 
             useEffect(() => {
                 localStorage.setItem('ukrainianVocabulary', JSON.stringify(vocabulary));
             }, [vocabulary]);
+
+            // Smart sort: prioritize lower confidence words
+            useEffect(() => {
+                if (sortMode === 'smart') {
+                    const sorted = [...vocabulary].sort((a, b) => {
+                        // First by confidence (lower first)
+                        if (a.confidence !== b.confidence) {
+                            return a.confidence - b.confidence;
+                        }
+                        // Then by review count (less reviewed first)
+                        return a.reviewCount - b.reviewCount;
+                    });
+                    setVocabulary(sorted);
+                    setCurrentIndex(0);
+                }
+            }, [sortMode]);
 
             const handleNext = () => {
                 setIsFlipped(false);
@@ -606,20 +698,61 @@
                 setIsFlipped(!isFlipped);
             };
 
+            const handleRate = (difficulty) => {
+                // difficulty: 0 = hard, 1 = ok, 2 = easy
+                const updatedVocab = [...vocabulary];
+                const currentWord = updatedVocab[currentIndex];
+
+                // Update confidence based on difficulty
+                if (difficulty === 0) {
+                    // Hard: decrease or keep at 0
+                    currentWord.confidence = Math.max(0, currentWord.confidence - 1);
+                } else if (difficulty === 1) {
+                    // OK: increase slightly
+                    currentWord.confidence = Math.min(3, currentWord.confidence + 1);
+                } else {
+                    // Easy: increase more
+                    currentWord.confidence = Math.min(3, currentWord.confidence + 2);
+                }
+
+                currentWord.reviewCount = (currentWord.reviewCount || 0) + 1;
+                setVocabulary(updatedVocab);
+
+                // Auto-advance to next card
+                setTimeout(() => {
+                    handleNext();
+                }, 300);
+            };
+
             const handleShuffle = () => {
                 const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
                 setVocabulary(shuffled);
                 setCurrentIndex(0);
                 setIsFlipped(false);
+                setSortMode('shuffle');
+            };
+
+            const handleSmartSort = () => {
+                setSortMode('smart');
             };
 
             const handleAddWord = (newWord) => {
-                setVocabulary([...vocabulary, newWord]);
+                const wordWithTracking = {
+                    ...newWord,
+                    confidence: 0,
+                    reviewCount: 0
+                };
+                setVocabulary([...vocabulary, wordWithTracking]);
                 setShowAddForm(false);
             };
 
             const handleImportWords = (words) => {
-                setVocabulary([...vocabulary, ...words]);
+                const wordsWithTracking = words.map(word => ({
+                    ...word,
+                    confidence: 0,
+                    reviewCount: 0
+                }));
+                setVocabulary([...vocabulary, ...wordsWithTracking]);
                 setShowImportForm(false);
             };
 
@@ -646,12 +779,30 @@
                 );
             }
 
+            const masteredCount = vocabulary.filter(w => w.confidence === 3).length;
+            const familiarCount = vocabulary.filter(w => w.confidence === 2).length;
+            const learningCount = vocabulary.filter(w => w.confidence === 1).length;
+            const newCount = vocabulary.filter(w => w.confidence === 0).length;
+
             return (
                 <div className="app-container">
                     <div className="header">
                         <h1>🇺🇦 Ukrainian Vocabulary</h1>
                         <div className="progress">
                             Card {currentIndex + 1} of {vocabulary.length}
+                            {sortMode === 'smart' && ' · Smart Sort'}
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            justifyContent: 'center',
+                            marginTop: '8px',
+                            fontSize: '13px'
+                        }}>
+                            <span style={{ color: '#999' }}>🆕 {newCount}</span>
+                            <span style={{ color: '#f5576c' }}>📚 {learningCount}</span>
+                            <span style={{ color: '#FFA726' }}>👍 {familiarCount}</span>
+                            <span style={{ color: '#4CAF50' }}>✅ {masteredCount}</span>
                         </div>
                     </div>
 
@@ -659,13 +810,16 @@
                         word={vocabulary[currentIndex]}
                         isFlipped={isFlipped}
                         onFlip={handleFlip}
+                        onRate={handleRate}
                     />
 
-                    <div className="tap-hint">
-                        Tap card to flip
-                    </div>
+                    {!isFlipped && (
+                        <div className="tap-hint">
+                            Tap card to flip
+                        </div>
+                    )}
 
-                    <div className="controls">
+                    <div className="controls" style={{ marginTop: isFlipped ? '15px' : '5px' }}>
                         <button className="btn btn-prev" onClick={handlePrev}>
                             ← Previous
                         </button>
@@ -675,6 +829,13 @@
                     </div>
 
                     <div className="secondary-controls">
+                        <button
+                            className="btn-secondary"
+                            onClick={handleSmartSort}
+                            style={{ borderColor: sortMode === 'smart' ? '#4CAF50' : '#667eea', color: sortMode === 'smart' ? '#4CAF50' : '#667eea' }}
+                        >
+                            🧠 Smart
+                        </button>
                         <button className="btn-secondary" onClick={handleShuffle}>
                             🔀 Shuffle
                         </button>
