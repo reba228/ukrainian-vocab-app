@@ -691,6 +691,16 @@
             const vocabInitialized = useRef(false);
             const saveTimer = useRef(null);
 
+            // ── Handle redirect result (mobile sign-in) ──
+            useEffect(() => {
+                firebase.auth().getRedirectResult().catch(e => {
+                    if (e.code && e.code !== 'auth/no-redirect-operation') {
+                        setSignInError('Sign-in failed. Please try again.');
+                        console.error(e);
+                    }
+                });
+            }, []);
+
             // ── Auth listener ──
             useEffect(() => {
                 const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
@@ -754,7 +764,7 @@
                 setSignInError('');
                 try {
                     const provider = new firebase.auth.GoogleAuthProvider();
-                    await firebase.auth().signInWithPopup(provider);
+                    await firebase.auth().signInWithRedirect(provider);
                 } catch (e) {
                     setSignInError('Sign-in failed. Please try again.');
                     console.error(e);
