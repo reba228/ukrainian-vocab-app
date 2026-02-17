@@ -859,6 +859,19 @@
                 setShowImportForm(false);
             };
 
+            const handleExport = () => {
+                const text = vocabulary.map(w =>
+                    `${w.ukrainian} | ${w.english}${w.pronunciation ? ' | ' + w.pronunciation : ''}`
+                ).join('\n');
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ukrainian-vocabulary.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
             const handleReset = () => {
                 if (confirm('Reset to default vocabulary? Your custom words will be removed.')) {
                     setVocabulary(initialVocabulary);
@@ -968,6 +981,7 @@
                         <button className="btn-secondary" onClick={() => { setShowImportForm(!showImportForm); setShowAddForm(false); }}>
                             📥 Import
                         </button>
+                        <button className="btn-secondary" onClick={handleExport}>📤 Export</button>
                         <button className="btn-secondary" onClick={handleReset}>🔄 Reset</button>
                     </div>
 
