@@ -770,10 +770,19 @@
                 setSignInError('');
                 try {
                     const provider = new firebase.auth.GoogleAuthProvider();
-                    await firebase.auth().signInWithRedirect(provider);
+                    await firebase.auth().signInWithPopup(provider);
                 } catch (e) {
-                    setSignInError('Sign-in failed. Please try again.');
-                    console.error(e);
+                    console.error('Sign-in error:', e.code, e.message);
+                    if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user') {
+                        // Fallback to redirect if popup is blocked
+                        try {
+                            await firebase.auth().signInWithRedirect(provider);
+                        } catch (e2) {
+                            setSignInError('Error: ' + e2.code);
+                        }
+                    } else {
+                        setSignInError('Error: ' + e.code);
+                    }
                 }
             };
 
