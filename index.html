@@ -397,13 +397,24 @@
             );
         }
 
-        function AddWordForm({ onAdd, onCancel }) {
+        function AddWordForm({ onAdd, onCancel, vocabulary }) {
             const [mode, setMode] = useState('translate'); // 'translate' or 'manual'
             const [ukrainian, setUkrainian] = useState('');
             const [english, setEnglish] = useState('');
             const [pronunciation, setPronunciation] = useState('');
             const [isTranslating, setIsTranslating] = useState(false);
             const [translationError, setTranslationError] = useState('');
+
+            const findDuplicate = (uk, en) => {
+                const ukLower = uk.trim().toLowerCase();
+                const enLower = en.trim().toLowerCase();
+                return vocabulary.find(w =>
+                    w.ukrainian.toLowerCase() === ukLower ||
+                    w.english.toLowerCase() === enLower
+                );
+            };
+
+            const duplicate = (ukrainian || english) ? findDuplicate(ukrainian, english) : null;
 
             const translateToUkrainian = async (englishText) => {
                 if (!englishText.trim()) {
@@ -447,7 +458,7 @@
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                if (ukrainian.trim() && english.trim()) {
+                if (ukrainian.trim() && english.trim() && !duplicate) {
                     onAdd({ ukrainian, english, pronunciation });
                     setUkrainian('');
                     setEnglish('');
@@ -553,11 +564,24 @@
                                 placeholder="pry-vit"
                             />
                         </div>
+                        {duplicate && (
+                            <div style={{
+                                background: '#fff3cd',
+                                border: '1px solid #ffc107',
+                                borderRadius: '8px',
+                                padding: '10px 12px',
+                                fontSize: '13px',
+                                color: '#856404',
+                                marginBottom: '12px'
+                            }}>
+                                ⚠️ Already exists: <strong>{duplicate.ukrainian}</strong> = {duplicate.english}
+                            </div>
+                        )}
                         <div className="form-actions">
                             <button type="button" className="btn btn-prev" onClick={onCancel}>
                                 Cancel
                             </button>
-                            <button type="submit" className="btn btn-next">
+                            <button type="submit" className="btn btn-next" disabled={!!duplicate}>
                                 Add Word
                             </button>
                         </div>
@@ -566,9 +590,10 @@
             );
         }
 
-        function ImportWordsForm({ onImport, onCancel }) {
+        function ImportWordsForm({ onImport, onCancel, vocabulary }) {
             const [importText, setImportText] = useState('');
             const [preview, setPreview] = useState([]);
+            const [skippedCount, setSkippedCount] = useState(0);
 
             const parseImportText = (text) => {
                 const lines = text.trim().split('\n').filter(line => line.trim());
@@ -609,7 +634,15 @@
             const handleTextChange = (e) => {
                 const text = e.target.value;
                 setImportText(text);
-                setPreview(parseImportText(text));
+                const parsed = parseImportText(text);
+                const unique = parsed.filter(w =>
+                    !vocabulary.find(existing =>
+                        existing.ukrainian.toLowerCase() === w.ukrainian.trim().toLowerCase() ||
+                        existing.english.toLowerCase() === w.english.trim().toLowerCase()
+                    )
+                );
+                setSkippedCount(parsed.length - unique.length);
+                setPreview(unique);
             };
 
             const handleSubmit = (e) => {
@@ -643,10 +676,19 @@
                                 or: Ukrainian - English
                             </div>
                         </div>
-                        {preview.length > 0 && (
+                        {(preview.length > 0 || skippedCount > 0) && (
                             <div className="form-group">
-                                <div style={{ fontSize: '14px', color: '#4CAF50', fontWeight: '600', marginBottom: '5px' }}>
-                                    Preview: {preview.length} word{preview.length !== 1 ? 's' : ''} will be imported
+                                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '5px' }}>
+                                    {preview.length > 0 && (
+                                        <span style={{ color: '#4CAF50' }}>
+                                            {preview.length} word{preview.length !== 1 ? 's' : ''} will be imported
+                                        </span>
+                                    )}
+                                    {skippedCount > 0 && (
+                                        <span style={{ color: '#f5576c', marginLeft: preview.length > 0 ? '10px' : 0 }}>
+                                            ⚠️ {skippedCount} duplicate{skippedCount !== 1 ? 's' : ''} skipped
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={{ maxHeight: '120px', overflow: 'auto', fontSize: '13px', padding: '10px', background: '#f9f9f9', borderRadius: '5px' }}>
                                     {preview.slice(0, 5).map((word, idx) => (
@@ -819,6 +861,7 @@
                         <AddWordForm
                             onAdd={handleAddWord}
                             onCancel={() => {}}
+                            vocabulary={vocabulary}
                         />
                     </div>
                 );
@@ -934,6 +977,7 @@
                         <AddWordForm
                             onAdd={handleAddWord}
                             onCancel={() => setShowAddForm(false)}
+                            vocabulary={vocabulary}
                         />
                     )}
 
@@ -941,6 +985,7 @@
                         <ImportWordsForm
                             onImport={handleImportWords}
                             onCancel={() => setShowImportForm(false)}
+                            vocabulary={vocabulary}
                         />
                     )}
                 </div>
