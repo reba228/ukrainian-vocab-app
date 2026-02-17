@@ -255,6 +255,9 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        const APP_VERSION = '1.4.0';
+        const APP_UPDATED = '2026-02-17';
+
         // Initial Ukrainian vocabulary
         const initialVocabulary = [
             { ukrainian: "Привіт", english: "Hello", pronunciation: "pry-vit", confidence: 0, reviewCount: 0 },
@@ -845,6 +848,9 @@
                             <span style={{ color: '#f5576c' }}>📚 {learningCount}</span>
                             <span style={{ color: '#FFA726' }}>👍 {familiarCount}</span>
                             <span style={{ color: '#4CAF50' }}>✅ {masteredCount}</span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#bbb', marginTop: '6px' }}>
+                            v{APP_VERSION} · {APP_UPDATED}
                         </div>
                     </div>
 
