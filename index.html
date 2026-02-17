@@ -279,7 +279,7 @@
             { ukrainian: "Друг", english: "Friend", pronunciation: "druh", confidence: 0, reviewCount: 0 },
         ];
 
-        function Flashcard({ word, isFlipped, onFlip, onRate }) {
+        function Flashcard({ word, isFlipped, onFlip, onRate, frontLanguage }) {
             const getConfidenceBadge = (confidence) => {
                 const badges = [
                     { emoji: '🆕', label: 'New', color: '#999' },
@@ -291,6 +291,37 @@
             };
 
             const badge = getConfidenceBadge(word.confidence);
+            const showUkrainianFirst = frontLanguage === 'uk';
+
+            const frontContent = showUkrainianFirst ? (
+                <>
+                    <div className="card-label">Ukrainian</div>
+                    <div className="card-word">{word.ukrainian}</div>
+                    {word.pronunciation && (
+                        <div className="card-pronunciation">[{word.pronunciation}]</div>
+                    )}
+                </>
+            ) : (
+                <>
+                    <div className="card-label">English</div>
+                    <div className="card-word">{word.english}</div>
+                </>
+            );
+
+            const backContent = showUkrainianFirst ? (
+                <>
+                    <div className="card-label">English</div>
+                    <div className="card-word">{word.english}</div>
+                </>
+            ) : (
+                <>
+                    <div className="card-label">Ukrainian</div>
+                    <div className="card-word">{word.ukrainian}</div>
+                    {word.pronunciation && (
+                        <div className="card-pronunciation">[{word.pronunciation}]</div>
+                    )}
+                </>
+            );
 
             return (
                 <>
@@ -300,18 +331,13 @@
                                 <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '24px' }}>
                                     {badge.emoji}
                                 </div>
-                                <div className="card-label">Ukrainian</div>
-                                <div className="card-word">{word.ukrainian}</div>
-                                {word.pronunciation && (
-                                    <div className="card-pronunciation">[{word.pronunciation}]</div>
-                                )}
+                                {frontContent}
                             </div>
                             <div className="card-face card-back">
                                 <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '24px' }}>
                                     {badge.emoji}
                                 </div>
-                                <div className="card-label">English</div>
-                                <div className="card-word">{word.english}</div>
+                                {backContent}
                             </div>
                         </div>
                     </div>
@@ -662,7 +688,15 @@
             const [isFlipped, setIsFlipped] = useState(false);
             const [showAddForm, setShowAddForm] = useState(false);
             const [showImportForm, setShowImportForm] = useState(false);
-            const [sortMode, setSortMode] = useState('smart'); // 'smart', 'shuffle', 'newest'
+            const [sortMode, setSortMode] = useState('smart');
+            const [studyMode, setStudyMode] = useState('mixed'); // 'uk-en', 'en-uk', 'mixed'
+            const [cardFront, setCardFront] = useState('uk'); // what's shown on front for current card
+
+            const getCardFront = (mode) => {
+                if (mode === 'uk-en') return 'uk';
+                if (mode === 'en-uk') return 'en';
+                return Math.random() < 0.5 ? 'uk' : 'en'; // mixed
+            };
 
             useEffect(() => {
                 localStorage.setItem('ukrainianVocabulary', JSON.stringify(vocabulary));
@@ -686,16 +720,24 @@
 
             const handleNext = () => {
                 setIsFlipped(false);
+                setCardFront(getCardFront(studyMode));
                 setCurrentIndex((prev) => (prev + 1) % vocabulary.length);
             };
 
             const handlePrev = () => {
                 setIsFlipped(false);
+                setCardFront(getCardFront(studyMode));
                 setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length);
             };
 
             const handleFlip = () => {
                 setIsFlipped(!isFlipped);
+            };
+
+            const handleStudyMode = (mode) => {
+                setStudyMode(mode);
+                setCardFront(getCardFront(mode));
+                setIsFlipped(false);
             };
 
             const handleRate = (difficulty) => {
@@ -806,11 +848,37 @@
                         </div>
                     </div>
 
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', justifyContent: 'center' }}>
+                        {[
+                            { key: 'uk-en', label: '🇺🇦→🇬🇧' },
+                            { key: 'mixed', label: '🔀 Mixed' },
+                            { key: 'en-uk', label: '🇬🇧→🇺🇦' },
+                        ].map(({ key, label }) => (
+                            <button
+                                key={key}
+                                onClick={() => handleStudyMode(key)}
+                                style={{
+                                    padding: '7px 12px',
+                                    border: `2px solid ${studyMode === key ? '#667eea' : '#ddd'}`,
+                                    borderRadius: '8px',
+                                    background: studyMode === key ? '#667eea' : 'white',
+                                    color: studyMode === key ? 'white' : '#666',
+                                    fontWeight: studyMode === key ? '600' : '400',
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+
                     <Flashcard
                         word={vocabulary[currentIndex]}
                         isFlipped={isFlipped}
                         onFlip={handleFlip}
                         onRate={handleRate}
+                        frontLanguage={cardFront}
                     />
 
                     {!isFlipped && (
