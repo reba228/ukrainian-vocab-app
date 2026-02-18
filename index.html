@@ -289,7 +289,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.6.2';
+        const APP_VERSION = '1.7.0';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -422,12 +422,18 @@
                                 <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '24px' }}>
                                     {badge.emoji}
                                 </div>
+                                {word.flagged && (
+                                    <div style={{ position: 'absolute', top: '15px', left: '15px', fontSize: '20px' }}>❓</div>
+                                )}
                                 {frontContent}
                             </div>
                             <div className="card-face card-back">
                                 <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '24px' }}>
                                     {badge.emoji}
                                 </div>
+                                {word.flagged && (
+                                    <div style={{ position: 'absolute', top: '15px', left: '15px', fontSize: '20px' }}>❓</div>
+                                )}
                                 {backContent}
                             </div>
                         </div>
@@ -655,6 +661,47 @@
             );
         }
 
+        // ─── Edit Word Form ───────────────────────────────────────────────
+        function EditWordForm({ word, onSave, onCancel }) {
+            const [ukrainian, setUkrainian] = useState(word.ukrainian);
+            const [english, setEnglish] = useState(word.english);
+            const [pronunciation, setPronunciation] = useState(word.pronunciation || '');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (ukrainian.trim() && english.trim()) {
+                    onSave({ ukrainian: ukrainian.trim(), english: english.trim(), pronunciation: pronunciation.trim() });
+                }
+            };
+
+            return (
+                <div className="add-word-form" style={{ borderLeft: '3px solid #FF9800' }}>
+                    <div className="form-title">✏️ Edit Word</div>
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label className="form-label">Ukrainian</label>
+                            <input type="text" className="form-input" value={ukrainian}
+                                onChange={(e) => setUkrainian(e.target.value)} required autoFocus />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">English</label>
+                            <input type="text" className="form-input" value={english}
+                                onChange={(e) => setEnglish(e.target.value)} required />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Pronunciation (optional)</label>
+                            <input type="text" className="form-input" value={pronunciation}
+                                onChange={(e) => setPronunciation(e.target.value)} />
+                        </div>
+                        <div className="form-actions">
+                            <button type="button" className="btn btn-prev" onClick={onCancel}>Cancel</button>
+                            <button type="submit" className="btn btn-next">Save</button>
+                        </div>
+                    </form>
+                </div>
+            );
+        }
+
         // ─── Main App ─────────────────────────────────────────────────────
         function App() {
             const [user, setUser] = useState(null);
@@ -668,6 +715,7 @@
             const [isFlipped, setIsFlipped] = useState(false);
             const [showAddForm, setShowAddForm] = useState(false);
             const [showImportForm, setShowImportForm] = useState(false);
+            const [showEditForm, setShowEditForm] = useState(false);
             const [studyMode, setStudyMode] = useState('mixed');
             const [cardFront, setCardFront] = useState('uk');
 
@@ -796,12 +844,14 @@
 
             const handleNext = () => {
                 setIsFlipped(false);
+                setShowEditForm(false);
                 setCardFront(getCardFront(studyMode));
                 setCurrentIndex((prev) => (prev + 1) % vocabulary.length);
             };
 
             const handlePrev = () => {
                 setIsFlipped(false);
+                setShowEditForm(false);
                 setCardFront(getCardFront(studyMode));
                 setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length);
             };
@@ -873,6 +923,50 @@
                 a.download = 'ukrainian-vocabulary.txt';
                 a.click();
                 URL.revokeObjectURL(url);
+            };
+
+            const handleSkipToMastered = () => {
+                const updatedVocab = [...vocabulary];
+                const word = updatedVocab[currentIndex];
+                word.confidence = 3;
+                word.seen = true;
+                word.reviewUkEn = Math.max(word.reviewUkEn || 0, 1);
+                word.reviewEnUk = Math.max(word.reviewEnUk || 0, 1);
+                word.reviewCount = (word.reviewCount || 0) + 1;
+                setVocabulary(updatedVocab);
+                setIsFlipped(false);
+                setTimeout(() => handleNext(), 300);
+            };
+
+            const handleToggleFlag = () => {
+                const updatedVocab = [...vocabulary];
+                updatedVocab[currentIndex].flagged = !updatedVocab[currentIndex].flagged;
+                if (!updatedVocab[currentIndex].flagged) setShowEditForm(false);
+                setVocabulary(updatedVocab);
+            };
+
+            const handleResetToNew = () => {
+                const updatedVocab = [...vocabulary];
+                const word = updatedVocab[currentIndex];
+                word.confidence = 0;
+                word.seen = false;
+                word.reviewCount = 0;
+                word.reviewUkEn = 0;
+                word.reviewEnUk = 0;
+                setVocabulary(updatedVocab);
+                setIsFlipped(false);
+                setShowEditForm(false);
+            };
+
+            const handleEditWord = (edited) => {
+                const updatedVocab = [...vocabulary];
+                updatedVocab[currentIndex] = {
+                    ...updatedVocab[currentIndex],
+                    ...edited,
+                    flagged: false,
+                };
+                setVocabulary(updatedVocab);
+                setShowEditForm(false);
             };
 
             // ── Render states ──
@@ -959,6 +1053,34 @@
                                 <button className="btn btn-prev" onClick={handlePrev}>← Previous</button>
                                 <button className="btn btn-next" onClick={handleNext}>Next →</button>
                             </div>
+                            {/* Word action bar */}
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px', flexWrap: 'wrap' }}>
+                                {vocabulary[currentIndex].confidence === 0 && !vocabulary[currentIndex].seen && (
+                                    <button onClick={handleSkipToMastered} style={{
+                                        padding: '6px 12px', fontSize: '12px', border: '1.5px solid #4CAF50',
+                                        background: 'white', color: '#4CAF50', borderRadius: '20px', cursor: 'pointer'
+                                    }}>✓ Already know</button>
+                                )}
+                                <button onClick={handleToggleFlag} style={{
+                                    padding: '6px 12px', fontSize: '12px',
+                                    border: `1.5px solid ${vocabulary[currentIndex].flagged ? '#FF9800' : '#ccc'}`,
+                                    background: vocabulary[currentIndex].flagged ? '#FFF3E0' : 'white',
+                                    color: vocabulary[currentIndex].flagged ? '#FF9800' : '#aaa',
+                                    borderRadius: '20px', cursor: 'pointer'
+                                }}>❓ {vocabulary[currentIndex].flagged ? 'Unsure' : 'Mark unsure'}</button>
+                                {vocabulary[currentIndex].flagged && (
+                                    <button onClick={() => { setShowEditForm(!showEditForm); setShowAddForm(false); setShowImportForm(false); }} style={{
+                                        padding: '6px 12px', fontSize: '12px', border: '1.5px solid #667eea',
+                                        background: showEditForm ? '#667eea' : 'white',
+                                        color: showEditForm ? 'white' : '#667eea',
+                                        borderRadius: '20px', cursor: 'pointer'
+                                    }}>✏️ Edit</button>
+                                )}
+                                <button onClick={handleResetToNew} style={{
+                                    padding: '6px 12px', fontSize: '12px', border: '1.5px solid #ccc',
+                                    background: 'white', color: '#aaa', borderRadius: '20px', cursor: 'pointer'
+                                }}>↩ Reset to New</button>
+                            </div>
                         </>
                     ) : (
                         <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>
@@ -967,10 +1089,10 @@
                     )}
 
                     <div className="secondary-controls">
-                        <button className="btn-secondary" onClick={() => { setShowAddForm(!showAddForm); setShowImportForm(false); }}>
+                        <button className="btn-secondary" onClick={() => { setShowAddForm(!showAddForm); setShowImportForm(false); setShowEditForm(false); }}>
                             ➕ Add Word
                         </button>
-                        <button className="btn-secondary" onClick={() => { setShowImportForm(!showImportForm); setShowAddForm(false); }}>
+                        <button className="btn-secondary" onClick={() => { setShowImportForm(!showImportForm); setShowAddForm(false); setShowEditForm(false); }}>
                             📥 Import
                         </button>
                         <button className="btn-secondary" onClick={handleExport}>📤 Export</button>
@@ -981,6 +1103,13 @@
                     )}
                     {showImportForm && (
                         <ImportWordsForm onImport={handleImportWords} onCancel={() => setShowImportForm(false)} vocabulary={vocabulary} />
+                    )}
+                    {showEditForm && vocabulary[currentIndex] && (
+                        <EditWordForm
+                            word={vocabulary[currentIndex]}
+                            onSave={handleEditWord}
+                            onCancel={() => setShowEditForm(false)}
+                        />
                     )}
                 </div>
             );
