@@ -289,7 +289,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.6.1';
+        const APP_VERSION = '1.6.2';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -369,7 +369,7 @@
         }
 
         // ─── Flashcard ────────────────────────────────────────────────────
-        function Flashcard({ word, isFlipped, onFlip, onRate, frontLanguage }) {
+        function Flashcard({ word, isFlipped, onFlip, onRate, frontLanguage, studyMode }) {
             const getConfidenceBadge = (confidence, seen) => {
                 if (confidence === 0 && seen) return { emoji: '😕', label: 'Hard', color: '#f5576c' };
                 const badges = [
@@ -434,20 +434,33 @@
                     </div>
 
                     {isFlipped && (
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center' }}>
-                            <button className="btn" style={{ background: '#f5576c', color: 'white', padding: '12px 20px', flex: 1, maxWidth: '150px' }}
-                                onClick={(e) => { e.stopPropagation(); onRate(0); }}>
-                                😕 Hard
-                            </button>
-                            <button className="btn" style={{ background: '#FFA726', color: 'white', padding: '12px 20px', flex: 1, maxWidth: '150px' }}
-                                onClick={(e) => { e.stopPropagation(); onRate(1); }}>
-                                😐 OK
-                            </button>
-                            <button className="btn" style={{ background: '#4CAF50', color: 'white', padding: '12px 20px', flex: 1, maxWidth: '150px' }}
-                                onClick={(e) => { e.stopPropagation(); onRate(2); }}>
-                                😊 Easy
-                            </button>
-                        </div>
+                        <>
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center' }}>
+                                <button className="btn" style={{ background: '#f5576c', color: 'white', padding: '12px 20px', flex: 1, maxWidth: '150px' }}
+                                    onClick={(e) => { e.stopPropagation(); onRate(0); }}>
+                                    😕 Hard
+                                </button>
+                                <button className="btn" style={{ background: '#FFA726', color: 'white', padding: '12px 20px', flex: 1, maxWidth: '150px' }}
+                                    onClick={(e) => { e.stopPropagation(); onRate(1); }}>
+                                    😐 OK
+                                </button>
+                                <button className="btn" style={{ background: '#4CAF50', color: 'white', padding: '12px 20px', flex: 1, maxWidth: '150px' }}
+                                    onClick={(e) => { e.stopPropagation(); onRate(2); }}>
+                                    😊 Easy
+                                </button>
+                            </div>
+                            {(() => {
+                                const practicedUkEn = (word.reviewUkEn || 0) > 0;
+                                const practicedEnUk = (word.reviewEnUk || 0) > 0;
+                                if (practicedUkEn && !practicedEnUk && studyMode !== 'en-uk') {
+                                    return <div style={{ textAlign: 'center', fontSize: '12px', color: '#aaa', marginTop: '8px' }}>🔒 Practice English→Ukrainian to unlock Mastered</div>;
+                                }
+                                if (practicedEnUk && !practicedUkEn && studyMode !== 'uk-en') {
+                                    return <div style={{ textAlign: 'center', fontSize: '12px', color: '#aaa', marginTop: '8px' }}>🔒 Practice Ukrainian→English to unlock Mastered</div>;
+                                }
+                                return null;
+                            })()}
+                        </>
                     )}
                 </>
             );
@@ -802,6 +815,18 @@
             const handleRate = (difficulty) => {
                 const updatedVocab = [...vocabulary];
                 const currentWord = updatedVocab[currentIndex];
+
+                // Track which side was just practiced
+                if (cardFront === 'uk') {
+                    currentWord.reviewUkEn = (currentWord.reviewUkEn || 0) + 1;
+                } else {
+                    currentWord.reviewEnUk = (currentWord.reviewEnUk || 0) + 1;
+                }
+
+                // Mastered (3) is only unlocked when both sides have been practiced at least once
+                const bothSidesPracticed = (currentWord.reviewUkEn || 0) > 0 && (currentWord.reviewEnUk || 0) > 0;
+                const maxConfidence = bothSidesPracticed ? 3 : 2;
+
                 if (difficulty === 0) {
                     // Hard: New words become "Hard" (seen=true, stay at 0); others go down
                     if (currentWord.confidence === 0) {
@@ -811,10 +836,10 @@
                         currentWord.seen = true;
                     }
                 } else if (difficulty === 1) {
-                    currentWord.confidence = Math.min(3, currentWord.confidence + 1);
+                    currentWord.confidence = Math.min(maxConfidence, currentWord.confidence + 1);
                     currentWord.seen = true;
                 } else {
-                    currentWord.confidence = Math.min(3, currentWord.confidence + 2);
+                    currentWord.confidence = Math.min(maxConfidence, currentWord.confidence + 2);
                     currentWord.seen = true;
                 }
                 currentWord.reviewCount = (currentWord.reviewCount || 0) + 1;
@@ -927,6 +952,7 @@
                                 onFlip={() => setIsFlipped(!isFlipped)}
                                 onRate={handleRate}
                                 frontLanguage={cardFront}
+                                studyMode={studyMode}
                             />
                             {!isFlipped && <div className="tap-hint">Tap card to flip</div>}
                             <div className="controls" style={{ marginTop: isFlipped ? '15px' : '5px' }}>
