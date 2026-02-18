@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ukrainian-vocab-v3';
+const CACHE_NAME = 'ukrainian-vocab-v4';
 
 self.addEventListener('install', event => {
   // Activate immediately without waiting

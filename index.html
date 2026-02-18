@@ -289,7 +289,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.5.0';
+        const APP_VERSION = '1.6.0';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -454,7 +454,6 @@
 
         // ─── Add Word Form ────────────────────────────────────────────────
         function AddWordForm({ onAdd, onCancel, vocabulary }) {
-            const [mode, setMode] = useState('translate');
             const [ukrainian, setUkrainian] = useState('');
             const [english, setEnglish] = useState('');
             const [pronunciation, setPronunciation] = useState('');
@@ -484,10 +483,10 @@
                     if (data.responseStatus === 200 && data.responseData.translatedText) {
                         setUkrainian(data.responseData.translatedText);
                     } else {
-                        setTranslationError('Translation failed. Please enter manually.');
+                        setTranslationError('Translation failed. Enter Ukrainian manually.');
                     }
                 } catch {
-                    setTranslationError('Translation service unavailable. Please enter manually.');
+                    setTranslationError('Translation unavailable. Enter Ukrainian manually.');
                 } finally {
                     setIsTranslating(false);
                 }
@@ -496,10 +495,8 @@
             const handleEnglishChange = (e) => {
                 const text = e.target.value;
                 setEnglish(text);
-                if (mode === 'translate') {
-                    clearTimeout(window.translationTimeout);
-                    window.translationTimeout = setTimeout(() => translateToUkrainian(text), 500);
-                }
+                clearTimeout(window.translationTimeout);
+                window.translationTimeout = setTimeout(() => translateToUkrainian(text), 500);
             };
 
             const handleSubmit = (e) => {
@@ -513,47 +510,20 @@
             return (
                 <div className="add-word-form">
                     <div className="form-title">Add New Word</div>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                        <button type="button" className={mode === 'translate' ? 'btn btn-next' : 'btn-secondary'}
-                            style={{ flex: 1, padding: '10px' }} onClick={() => setMode('translate')}>
-                            🌐 Auto-translate
-                        </button>
-                        <button type="button" className={mode === 'manual' ? 'btn btn-next' : 'btn-secondary'}
-                            style={{ flex: 1, padding: '10px' }} onClick={() => setMode('manual')}>
-                            ✍️ Manual Entry
-                        </button>
-                    </div>
                     <form onSubmit={handleSubmit}>
-                        {mode === 'translate' ? (
-                            <>
-                                <div className="form-group">
-                                    <label className="form-label">English Word or Phrase</label>
-                                    <input type="text" className="form-input" value={english}
-                                        onChange={handleEnglishChange} placeholder="Hello" required />
-                                    {isTranslating && <div style={{ fontSize: '12px', color: '#4CAF50', marginTop: '5px' }}>Translating...</div>}
-                                    {translationError && <div style={{ fontSize: '12px', color: '#f5576c', marginTop: '5px' }}>{translationError}</div>}
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Ukrainian Translation (edit if needed)</label>
-                                    <input type="text" className="form-input" value={ukrainian}
-                                        onChange={(e) => setUkrainian(e.target.value)} placeholder="Привіт" required
-                                        style={{ background: ukrainian ? '#f0fff4' : 'white' }} />
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="form-group">
-                                    <label className="form-label">Ukrainian Word</label>
-                                    <input type="text" className="form-input" value={ukrainian}
-                                        onChange={(e) => setUkrainian(e.target.value)} placeholder="Привіт" required />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">English Translation</label>
-                                    <input type="text" className="form-input" value={english}
-                                        onChange={(e) => setEnglish(e.target.value)} placeholder="Hello" required />
-                                </div>
-                            </>
-                        )}
+                        <div className="form-group">
+                            <label className="form-label">English Word or Phrase</label>
+                            <input type="text" className="form-input" value={english}
+                                onChange={handleEnglishChange} placeholder="Hello" required />
+                            {isTranslating && <div style={{ fontSize: '12px', color: '#4CAF50', marginTop: '5px' }}>Translating...</div>}
+                            {translationError && <div style={{ fontSize: '12px', color: '#f5576c', marginTop: '5px' }}>{translationError}</div>}
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Ukrainian Translation (edit if needed)</label>
+                            <input type="text" className="form-input" value={ukrainian}
+                                onChange={(e) => setUkrainian(e.target.value)} placeholder="Привіт" required
+                                style={{ background: ukrainian ? '#f0fff4' : 'white' }} />
+                        </div>
                         <div className="form-group">
                             <label className="form-label">Pronunciation (optional)</label>
                             <input type="text" className="form-input" value={pronunciation}
@@ -684,9 +654,13 @@
             const [isFlipped, setIsFlipped] = useState(false);
             const [showAddForm, setShowAddForm] = useState(false);
             const [showImportForm, setShowImportForm] = useState(false);
-            const [sortMode, setSortMode] = useState('smart');
             const [studyMode, setStudyMode] = useState('mixed');
             const [cardFront, setCardFront] = useState('uk');
+
+            const smartSort = (words) => [...words].sort((a, b) => {
+                if (a.confidence !== b.confidence) return a.confidence - b.confidence;
+                return a.reviewCount - b.reviewCount;
+            });
 
             const vocabInitialized = useRef(false);
             const saveTimer = useRef(null);
@@ -722,14 +696,14 @@
                                         confidence: w.confidence !== undefined ? w.confidence : 0,
                                         reviewCount: w.reviewCount || 0
                                     }));
-                                    setVocabulary(words);
+                                    setVocabulary(smartSort(words));
                                 } else {
-                                    setVocabulary(initialVocabulary);
+                                    setVocabulary(smartSort(initialVocabulary));
                                 }
                             } catch (e) {
                                 console.error('Firestore load failed:', e);
                                 const saved = localStorage.getItem('ukrainianVocabulary');
-                                setVocabulary(saved ? JSON.parse(saved) : initialVocabulary);
+                                setVocabulary(smartSort(saved ? JSON.parse(saved) : initialVocabulary));
                             }
                             setVocabLoading(false);
                             vocabInitialized.current = true;
@@ -829,33 +803,18 @@
                 setTimeout(() => handleNext(), 300);
             };
 
-            const handleShuffle = () => {
-                const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
-                setVocabulary(shuffled);
-                setCurrentIndex(0);
-                setIsFlipped(false);
-                setSortMode('shuffle');
-            };
-
-            const handleSmartSort = () => {
-                const sorted = [...vocabulary].sort((a, b) => {
-                    if (a.confidence !== b.confidence) return a.confidence - b.confidence;
-                    return a.reviewCount - b.reviewCount;
-                });
-                setVocabulary(sorted);
-                setCurrentIndex(0);
-                setIsFlipped(false);
-                setSortMode('smart');
-            };
-
             const handleAddWord = (newWord) => {
-                setVocabulary([...vocabulary, { ...newWord, confidence: 0, reviewCount: 0 }]);
+                setVocabulary(smartSort([...vocabulary, { ...newWord, confidence: 0, reviewCount: 0 }]));
+                setCurrentIndex(0);
+                setIsFlipped(false);
                 setShowAddForm(false);
             };
 
             const handleImportWords = (words) => {
                 const wordsWithTracking = words.map(w => ({ ...w, confidence: 0, reviewCount: 0 }));
-                setVocabulary([...vocabulary, ...wordsWithTracking]);
+                setVocabulary(smartSort([...vocabulary, ...wordsWithTracking]));
+                setCurrentIndex(0);
+                setIsFlipped(false);
                 setShowImportForm(false);
             };
 
@@ -870,14 +829,6 @@
                 a.download = 'ukrainian-vocabulary.txt';
                 a.click();
                 URL.revokeObjectURL(url);
-            };
-
-            const handleReset = () => {
-                if (confirm('Reset to default vocabulary? Your custom words will be removed.')) {
-                    setVocabulary(initialVocabulary);
-                    setCurrentIndex(0);
-                    setIsFlipped(false);
-                }
             };
 
             // ── Render states ──
@@ -895,8 +846,7 @@
                     <div className="header">
                         <h1>🇺🇦 Ukrainian Vocabulary</h1>
                         <div className="progress">
-                            Card {currentIndex + 1} of {vocabulary.length}
-                            {sortMode === 'smart' && ' · Smart Sort'}
+                            Card {currentIndex + 1} of {vocabulary.length} · Smart Sort
                         </div>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px', fontSize: '13px' }}>
                             <span style={{ color: '#999' }}>🆕 {newCount}</span>
@@ -970,11 +920,6 @@
                     )}
 
                     <div className="secondary-controls">
-                        <button className="btn-secondary" onClick={handleSmartSort}
-                            style={{ borderColor: sortMode === 'smart' ? '#4CAF50' : '#667eea', color: sortMode === 'smart' ? '#4CAF50' : '#667eea' }}>
-                            🧠 Smart
-                        </button>
-                        <button className="btn-secondary" onClick={handleShuffle}>🔀 Shuffle</button>
                         <button className="btn-secondary" onClick={() => { setShowAddForm(!showAddForm); setShowImportForm(false); }}>
                             ➕ Add Word
                         </button>
@@ -982,7 +927,6 @@
                             📥 Import
                         </button>
                         <button className="btn-secondary" onClick={handleExport}>📤 Export</button>
-                        <button className="btn-secondary" onClick={handleReset}>🔄 Reset</button>
                     </div>
 
                     {showAddForm && (
