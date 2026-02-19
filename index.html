@@ -289,7 +289,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.7.0';
+        const APP_VERSION = '1.7.1';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -731,6 +731,7 @@
             });
 
             const vocabInitialized = useRef(false);
+            const loadedVocabSize = useRef(0);
             const saveTimer = useRef(null);
 
             // ── Auth init: wait for redirect result THEN listen ──
@@ -764,14 +765,18 @@
                                         confidence: w.confidence !== undefined ? w.confidence : 0,
                                         reviewCount: w.reviewCount || 0
                                     }));
+                                    loadedVocabSize.current = words.length;
                                     setVocabulary(smartSort(words));
                                 } else {
+                                    loadedVocabSize.current = initialVocabulary.length;
                                     setVocabulary(smartSort(initialVocabulary));
                                 }
                             } catch (e) {
                                 console.error('Firestore load failed:', e);
                                 const saved = localStorage.getItem('ukrainianVocabulary');
-                                setVocabulary(smartSort(saved ? JSON.parse(saved) : initialVocabulary));
+                                const fallback = saved ? JSON.parse(saved) : initialVocabulary;
+                                loadedVocabSize.current = fallback.length;
+                                setVocabulary(smartSort(fallback));
                             }
                             setVocabLoading(false);
                             vocabInitialized.current = true;
@@ -789,6 +794,9 @@
             // ── Save vocabulary to Firestore on change ──
             useEffect(() => {
                 if (!vocabInitialized.current || vocabulary.length === 0 || !user) return;
+                // Safety: never save if vocabulary shrank to less than loaded count minus 5
+                // (prevents accidental overwrites with initial/empty data)
+                if (vocabulary.length < loadedVocabSize.current - 5) return;
 
                 setSaveStatus('saving');
                 if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -946,6 +954,8 @@
             };
 
             const handleResetToNew = () => {
+                const w = vocabulary[currentIndex];
+                if (!confirm(`Reset "${w.ukrainian}" (${w.english}) back to New?\nAll progress for this word will be cleared.`)) return;
                 const updatedVocab = [...vocabulary];
                 const word = updatedVocab[currentIndex];
                 word.confidence = 0;
