@@ -289,7 +289,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.7.1';
+        const APP_VERSION = '1.7.2';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -1065,7 +1065,7 @@
                             </div>
                             {/* Word action bar */}
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px', flexWrap: 'wrap' }}>
-                                {vocabulary[currentIndex].confidence === 0 && !vocabulary[currentIndex].seen && (
+                                {vocabulary[currentIndex].confidence < 3 && (
                                     <button onClick={handleSkipToMastered} style={{
                                         padding: '6px 12px', fontSize: '12px', border: '1.5px solid #4CAF50',
                                         background: 'white', color: '#4CAF50', borderRadius: '20px', cursor: 'pointer'
