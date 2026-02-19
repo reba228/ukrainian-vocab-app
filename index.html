@@ -66,6 +66,9 @@
             transition: transform 0.6s;
             cursor: pointer;
         }
+        .flashcard.no-flip-anim {
+            transition: none;
+        }
 
         .flashcard.flipped {
             transform: rotateY(180deg);
@@ -289,7 +292,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.7.3';
+        const APP_VERSION = '1.7.4';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -369,7 +372,7 @@
         }
 
         // ─── Flashcard ────────────────────────────────────────────────────
-        function Flashcard({ word, isFlipped, onFlip, onRate, frontLanguage, studyMode }) {
+        function Flashcard({ word, isFlipped, onFlip, onRate, frontLanguage, studyMode, noFlipAnim }) {
             const getConfidenceBadge = (confidence, seen) => {
                 if (confidence === 0 && seen) return { emoji: '😕', label: 'Hard', color: '#f5576c' };
                 const badges = [
@@ -417,7 +420,7 @@
             return (
                 <>
                     <div className="flashcard-container" onClick={onFlip}>
-                        <div className={`flashcard ${isFlipped ? 'flipped' : ''}`}>
+                        <div className={`flashcard ${isFlipped ? 'flipped' : ''} ${noFlipAnim ? 'no-flip-anim' : ''}`}>
                             <div className="card-face card-front">
                                 <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '24px' }}>
                                     {badge.emoji}
@@ -718,6 +721,7 @@
             const [showEditForm, setShowEditForm] = useState(false);
             const [studyMode, setStudyMode] = useState('mixed');
             const [cardFront, setCardFront] = useState('uk');
+            const [noFlipAnim, setNoFlipAnim] = useState(false);
 
             const smartSort = (words) => [...words].sort((a, b) => {
                 const priority = (w) => {
@@ -851,17 +855,21 @@
             };
 
             const handleNext = () => {
+                setNoFlipAnim(true);
                 setIsFlipped(false);
                 setShowEditForm(false);
                 setCardFront(getCardFront(studyMode));
                 setCurrentIndex((prev) => (prev + 1) % vocabulary.length);
+                requestAnimationFrame(() => requestAnimationFrame(() => setNoFlipAnim(false)));
             };
 
             const handlePrev = () => {
+                setNoFlipAnim(true);
                 setIsFlipped(false);
                 setShowEditForm(false);
                 setCardFront(getCardFront(studyMode));
                 setCurrentIndex((prev) => (prev - 1 + vocabulary.length) % vocabulary.length);
+                requestAnimationFrame(() => requestAnimationFrame(() => setNoFlipAnim(false)));
             };
 
             const handleStudyMode = (mode) => {
@@ -1057,6 +1065,7 @@
                                 onRate={handleRate}
                                 frontLanguage={cardFront}
                                 studyMode={studyMode}
+                                noFlipAnim={noFlipAnim}
                             />
                             {!isFlipped && <div className="tap-hint">Tap card to flip</div>}
                             <div className="controls" style={{ marginTop: isFlipped ? '15px' : '5px' }}>
