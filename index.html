@@ -292,7 +292,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.7.5';
+        const APP_VERSION = '1.7.6';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -572,8 +572,18 @@
             const [importText, setImportText] = useState('');
             const [preview, setPreview] = useState([]);
             const [skippedCount, setSkippedCount] = useState(0);
+            const [isFullBackup, setIsFullBackup] = useState(false);
 
             const parseImportText = (text) => {
+                // Detect JSON backup format
+                try {
+                    const json = JSON.parse(text.trim());
+                    if (json.words && Array.isArray(json.words)) {
+                        return { words: json.words, fullBackup: true };
+                    }
+                } catch (e) {}
+
+                // Plain text format
                 const lines = text.trim().split('\n').filter(line => line.trim());
                 const words = [];
                 for (const line of lines) {
@@ -587,27 +597,33 @@
                         words.push({ ukrainian: parts[0], english: parts[1], pronunciation: parts[2] || '' });
                     }
                 }
-                return words;
+                return { words, fullBackup: false };
             };
 
             const handleTextChange = (e) => {
                 const text = e.target.value;
                 setImportText(text);
-                const parsed = parseImportText(text);
-                const unique = parsed.filter(w =>
-                    !vocabulary.find(existing =>
-                        existing.ukrainian.toLowerCase() === w.ukrainian.trim().toLowerCase() ||
-                        existing.english.toLowerCase() === w.english.trim().toLowerCase()
-                    )
-                );
-                setSkippedCount(parsed.length - unique.length);
-                setPreview(unique);
+                const { words: parsed, fullBackup } = parseImportText(text);
+                setIsFullBackup(fullBackup);
+                if (fullBackup) {
+                    setPreview(parsed);
+                    setSkippedCount(0);
+                } else {
+                    const unique = parsed.filter(w =>
+                        !vocabulary.find(existing =>
+                            existing.ukrainian.toLowerCase() === w.ukrainian.trim().toLowerCase() ||
+                            existing.english.toLowerCase() === w.english.trim().toLowerCase()
+                        )
+                    );
+                    setSkippedCount(parsed.length - unique.length);
+                    setPreview(unique);
+                }
             };
 
             const handleSubmit = (e) => {
                 e.preventDefault();
                 if (preview.length > 0) {
-                    onImport(preview);
+                    onImport(preview, isFullBackup);
                     setImportText(''); setPreview([]);
                 }
             };
@@ -624,21 +640,29 @@
                                 placeholder={"Supported formats:\nПривіт | Hello | pry-vit\nДякую, Thank you, dya-ku-yu\nТак - Yes"}
                                 rows="8" />
                             <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                                Formats: Ukrainian | English | pronunciation
+                                Paste a backup file (.json) or plain text: Ukrainian | English | pronunciation
                             </div>
                         </div>
                         {(preview.length > 0 || skippedCount > 0) && (
                             <div className="form-group">
                                 <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '5px' }}>
-                                    {preview.length > 0 && (
+                                    {isFullBackup ? (
                                         <span style={{ color: '#4CAF50' }}>
-                                            {preview.length} word{preview.length !== 1 ? 's' : ''} will be imported
+                                            ✅ Backup detected — {preview.length} words with full progress will be restored
                                         </span>
-                                    )}
-                                    {skippedCount > 0 && (
-                                        <span style={{ color: '#f5576c', marginLeft: preview.length > 0 ? '10px' : 0 }}>
-                                            ⚠️ {skippedCount} duplicate{skippedCount !== 1 ? 's' : ''} skipped
-                                        </span>
+                                    ) : (
+                                        <>
+                                            {preview.length > 0 && (
+                                                <span style={{ color: '#4CAF50' }}>
+                                                    {preview.length} word{preview.length !== 1 ? 's' : ''} will be imported
+                                                </span>
+                                            )}
+                                            {skippedCount > 0 && (
+                                                <span style={{ color: '#f5576c', marginLeft: preview.length > 0 ? '10px' : 0 }}>
+                                                    ⚠️ {skippedCount} duplicate{skippedCount !== 1 ? 's' : ''} skipped
+                                                </span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                                 <div style={{ maxHeight: '120px', overflow: 'auto', fontSize: '13px',
@@ -923,23 +947,28 @@
                 setShowAddForm(false);
             };
 
-            const handleImportWords = (words) => {
-                const wordsWithTracking = words.map(w => ({ ...w, confidence: 0, reviewCount: 0 }));
-                setVocabulary(smartSort([...vocabulary, ...wordsWithTracking]));
+            const handleImportWords = (words, isFullBackup) => {
+                if (isFullBackup) {
+                    // Full backup restore: replace everything, preserve all progress data
+                    loadedVocabSize.current = words.length;
+                    setVocabulary(smartSort(words));
+                } else {
+                    // Plain text import: add new words with fresh tracking
+                    const wordsWithTracking = words.map(w => ({ ...w, confidence: 0, reviewCount: 0 }));
+                    setVocabulary(smartSort([...vocabulary, ...wordsWithTracking]));
+                }
                 setCurrentIndex(0);
                 setIsFlipped(false);
                 setShowImportForm(false);
             };
 
             const handleExport = () => {
-                const text = vocabulary.map(w =>
-                    `${w.ukrainian} | ${w.english}${w.pronunciation ? ' | ' + w.pronunciation : ''}`
-                ).join('\n');
-                const blob = new Blob([text], { type: 'text/plain' });
+                const backup = { version: 1, exportedAt: new Date().toISOString(), words: vocabulary };
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'ukrainian-vocabulary.txt';
+                a.download = `ukrainian-vocabulary-backup-${new Date().toISOString().slice(0,10)}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
             };
