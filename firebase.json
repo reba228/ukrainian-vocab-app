@@ -9,5 +9,8 @@
       "start-server.sh",
       "*.sh"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
