@@ -292,7 +292,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const APP_VERSION = '1.7.4';
+        const APP_VERSION = '1.7.5';
         const APP_UPDATED = '2026-02-17';
 
         const initialVocabulary = [
@@ -799,10 +799,12 @@
             useEffect(() => {
                 if (!vocabInitialized.current || vocabulary.length === 0 || !user) return;
                 // Safety: never save if vocabulary shrank to less than loaded count minus 5
-                // (prevents accidental overwrites with initial/empty data)
                 if (vocabulary.length < loadedVocabSize.current - 5) return;
 
                 setSaveStatus('saving');
+                // Always backup to localStorage immediately
+                localStorage.setItem('ukrainianVocabulary', JSON.stringify(vocabulary));
+
                 if (saveTimer.current) clearTimeout(saveTimer.current);
                 saveTimer.current = setTimeout(async () => {
                     try {
@@ -814,7 +816,8 @@
                         setTimeout(() => setSaveStatus(''), 2000);
                     } catch (e) {
                         console.error('Firestore save failed:', e);
-                        setSaveStatus('');
+                        setSaveStatus('error');
+                        setTimeout(() => setSaveStatus(''), 4000);
                     }
                 }, 1500);
             }, [vocabulary]);
@@ -1023,6 +1026,7 @@
                             <span style={{ fontSize: '11px', color: '#ccc' }}>·</span>
                             {saveStatus === 'saving' && <span style={{ fontSize: '11px', color: '#aaa' }}>saving...</span>}
                             {saveStatus === 'saved' && <span style={{ fontSize: '11px', color: '#4CAF50' }}>✓ saved</span>}
+                            {saveStatus === 'error' && <span style={{ fontSize: '11px', color: '#f5576c' }}>⚠ cloud save failed</span>}
                             {!saveStatus && (
                                 <button onClick={handleSignOut}
                                     style={{ fontSize: '11px', color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
